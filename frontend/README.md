@@ -4,6 +4,7 @@ React web interface for the WasmForge plugin platform.
 
 ## Pages
 
+- **Landing** — Hero, how it works, architecture diagram, features, CTA
 - **Plugins** — Browse deployed plugins, see input type and AI call count
 - **Builder** — Web IDE with autocomplete, templates, SDK reference sidebar
 - **Runner** — Execute plugins with text, file, or JSON input
@@ -44,8 +45,9 @@ src/
 ├── components/
 │   └── Navbar.jsx
 ├── pages/
+│   ├── Landing.jsx     # Landing page with hero + architecture
 │   ├── Builder.jsx     # IDE + autocomplete + templates
-│   ├── Marketplace.jsx # Plugin list
+│   ├── Marketplace.jsx # Plugin list with metadata
 │   ├── Runner.jsx      # Plugin execution (text/file/JSON)
 │   └── Models.jsx      # AI model list
 ├── App.jsx

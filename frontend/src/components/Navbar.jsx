@@ -8,7 +8,11 @@ export default function Navbar({ page, setPage }) {
 
   return (
     <nav className="nav">
-      <div className="nav-logo">
+      <div
+        className="nav-logo"
+        onClick={() => setPage("landing")}
+        style={{ cursor: "pointer" }}
+      >
         wasmforge<span>/</span>
       </div>
       <div className="nav-links">
