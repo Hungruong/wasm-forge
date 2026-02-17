@@ -42,38 +42,38 @@ Developers write a few lines of Python, upload to the platform, and their AI wor
 │  Akamai Linode Instance 1 (Compute)                       │
 │                                                           │
 │  ┌─────────────┐    ┌──────────────────────────────────┐  │
-│  │             │    │  WasmEdge Sandbox                 │  │
-│  │  Frontend   │    │  ┌─────────────────────────────┐  │  │
-│  │  (React)    │    │  │  python.wasm                │  │  │
-│  │  :3000      │    │  │  ┌───────────────────────┐  │  │  │
-│  │             │    │  │  │  plugin.py             │  │  │  │
-│  └──────┬──────┘    │  │  │  platform_sdk.py       │  │  │  │
-│         │           │  │  │                       │  │  │  │
-│         ▼           │  │  │  NO network access    │  │  │  │
-│  ┌──────────────┐   │  │  │  NO filesystem access │  │  │  │
-│  │              │   │  │  │  ONLY stdin/stdout    │  │  │  │
-│  │  API Server  │   │  │  └──────┬────────────────┘  │  │  │
-│  │  (FastAPI)   │◄──┼──┼─────────┘ stdin/stdout      │  │  │
-│  │  :8000       │   │  │         bridge               │  │  │
-│  │              │   │  └──────────────────────────────┘  │  │
-│  │  - Validate  │   │                                    │  │
-│  │  - Rate limit│   │                                    │  │
-│  │  - Route AI  │   │                                    │  │
-│  └──────┬───────┘   │                                    │  │
-│         │           │                                    │  │
-└─────────┼───────────┼────────────────────────────────────┘  │
-          │ HTTP                                              │
-          ▼                                                   │
-┌──────────────────────────────────────────────────────────┐  │
-│  Akamai Linode Instance 2 (GPU)                          │  │
-│                                                          │  │
-│  Ollama :11434                                           │  │
-│  ├── llama3   (text processing)                          │  │
-│  ├── llava    (image understanding)                      │  │
-│  └── mistral  (code analysis)                            │  │
-│                                                          │  │
-│  Firewall: accepts requests ONLY from Instance 1         │  │
-└──────────────────────────────────────────────────────────┘
+│  │             │    │  WasmEdge Sandbox                │  │
+│  │  Frontend   │    │  ┌─────────────────────────────┐ │  │
+│  │  (React)    │    │  │  python.wasm                │ │  │
+│  │  :3000      │    │  │  ┌───────────────────────┐  │ │  │
+│  │             │    │  │  │  plugin.py            │  │ │  │
+│  └──────┬──────┘    │  │  │  platform_sdk.py      │  │ │  │
+│         │           │  │  │                       │  │ │  │
+│         ▼           │  │  │  NO network access    │  │ │  │
+│  ┌──────────────┐   │  │  │  NO filesystem access │  │ │  │
+│  │              │   │  │  │  ONLY stdin/stdout    │  │ │  │
+│  │  API Server  │   │  │  └──────┬────────────────┘  │ │  │
+│  │  (FastAPI)   │◄──┼──┼─────────┘ stdin/stdout      │ │  │
+│  │  :8000       │   │  │         bridge              │ │  │
+│  │              │   │  └─────────────────────────────┘ │  │
+│  │  - Validate  │   │                                  │  │
+│  │  - Rate limit│   │                                  │  │
+│  │  - Route AI  │   │                                  │  │
+│  └──────┬───────┘   │                                  │  │
+│         │           │                                  │  │
+└─────────┼───────────┼──────────────────────────────────┘  │
+          │ HTTP                                            │
+          ▼                                                 │
+┌────────────────────────────────────────────────────────┐  │
+│  Akamai Linode Instance 2 (GPU)                        │  │
+│                                                        │  │
+│  Ollama :11434                                         │  │
+│  ├── llama3   (text processing)                        │  │
+│  ├── llava    (image understanding)                    │  │
+│  └── mistral  (code analysis)                          │  │
+│                                                        │  │
+│  Firewall: accepts requests ONLY from Instance 1       │  │
+└───────────────────────────────────────────────────────────┘
 ```
 
 ---
