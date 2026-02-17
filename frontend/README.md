@@ -1,16 +1,54 @@
-# React + Vite
+# WasmForge Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React web interface for the WasmForge plugin platform.
 
-Currently, two official plugins are available:
+## Pages
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Plugins** — Browse deployed plugins, see input type and AI call count
+- **Builder** — Web IDE with autocomplete, templates, SDK reference sidebar
+- **Runner** — Execute plugins with text, file, or JSON input
+- **Models** — View available AI models (llama3, llava, mistral)
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Open http://localhost:5173
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Connect to Backend
+
+Edit `src/api/api.js`:
+
+```js
+const USE_MOCK = false;
+const API_URL = "http://<server-ip>:8000";
+```
+
+## Tech Stack
+
+- React + Vite
+- DM Sans + JetBrains Mono fonts
+- Custom autocomplete engine
+- Mock API layer (toggle with `USE_MOCK`)
+
+## Structure
+
+```
+src/
+├── api/
+│   ├── api.js          # API layer (mock ↔ real switch)
+│   └── mock.js         # Mock data for testing
+├── components/
+│   └── Navbar.jsx
+├── pages/
+│   ├── Builder.jsx     # IDE + autocomplete + templates
+│   ├── Marketplace.jsx # Plugin list
+│   ├── Runner.jsx      # Plugin execution (text/file/JSON)
+│   └── Models.jsx      # AI model list
+├── App.jsx
+├── main.jsx
+└── index.css           # Full design system
+```
