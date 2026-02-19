@@ -1,9 +1,11 @@
 """
-api/routes/plugins.py
+api/routes/plugins.py — Plugin CRUD + execution endpoints.
+
+All storage is PostgreSQL-backed (no filesystem).
 """
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, File
-from models.schemas import PluginInfo, PluginRunResult
+from models.schemas import PluginInfo, PluginRunResult, PluginCodeResponse
 from services.plugins import plugin_service
 from core.exceptions import PluginNotFoundError, PluginValidationError
 
@@ -13,23 +15,34 @@ router = APIRouter()
 @router.get("/list", response_model=list[PluginInfo])
 async def list_plugins():
     """Return all deployed plugins."""
-    return plugin_service.list()
+    return await plugin_service.list()
 
 
 @router.post("/upload", response_model=PluginInfo, status_code=201)
-async def upload_plugin(file: UploadFile = File(...)):
+async def upload_plugin(
+    file: UploadFile = File(...),
+    description: str = Form(""),
+    input_type: str = Form("text"),
+    input_hint: str = Form(""),
+):
     """
-    Upload a new plugin.
+    Upload (or update) a plugin.
     - Must be a .py file
     - Must import from platform_sdk
-    - Must not use packages unavailable in the WASM sandbox
+    - Stored in PostgreSQL (code + metadata)
     """
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
     try:
         content = await file.read()
-        return plugin_service.save(file.filename, content)
+        return await plugin_service.save(
+            filename=file.filename,
+            content=content,
+            description=description,
+            input_type=input_type,
+            input_hint=input_hint,
+        )
     except PluginValidationError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
@@ -46,11 +59,20 @@ async def run_plugin(
         raise HTTPException(status_code=404, detail=str(e))
 
 
+@router.get("/{plugin_name}/code", response_model=PluginCodeResponse)
+async def get_plugin_code(plugin_name: str):
+    """Return plugin source code (for the Builder editor)."""
+    try:
+        code = await plugin_service.get_code(plugin_name)
+        return PluginCodeResponse(name=plugin_name, code=code)
+    except PluginNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
 @router.delete("/{plugin_name}", status_code=204)
 async def delete_plugin(plugin_name: str):
-    """Remove a deployed plugin."""
+    """Remove a deployed plugin from the database."""
     try:
-        path = plugin_service.get_path(plugin_name)
-        path.unlink()
+        await plugin_service.delete(plugin_name)
     except PluginNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))

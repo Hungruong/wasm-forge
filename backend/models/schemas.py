@@ -19,6 +19,10 @@ class PluginInfo(BaseModel):
     name: str
     filename: str
     size_bytes: int
+    description: str = ""
+    input_type: str = "text"
+    input_hint: str = ""
+    calls: int = 1
 
 
 class PluginRunRequest(BaseModel):
@@ -34,9 +38,12 @@ class PluginRunResult(BaseModel):
     error_type: str | None = None   # sandbox | bridge | timeout | plugin | ai
 
 
+class PluginCodeResponse(BaseModel):
+    name: str
+    code: str
+
+
 # ── Bridge protocol ───────────────────────────────────────────────────────────
-# Shared schema between API server and SDK.
-# TODO: finalise with SDK developer before implementing the bridge handler.
 
 class BridgeRequest(BaseModel):
     type: str                        # "ai_call" | "list_models"
@@ -57,4 +64,9 @@ class HealthResponse(BaseModel):
 class OllamaHealthResponse(BaseModel):
     status: str
     models: list[str] = []
+    error: str | None = None
+
+class DbHealthResponse(BaseModel):
+    status: str
+    database: str = ""
     error: str | None = None

@@ -77,14 +77,6 @@ class SandboxRunner:
         """
         Manages the stdin/stdout message exchange between the API server
         and the plugin running inside the sandbox.
-
-        TODO: Implement full bridge protocol once schema is agreed with SDK dev.
-              Current implementation passes input directly and captures output.
-
-        Bridge protocol (draft):
-            Plugin → Server:  {"type": "ai_call", "model": "llama3", "prompt": "..."}
-            Server → Plugin:  {"type": "result", "data": "..."}
-                           or {"type": "error", "error": "..."}
         """
         ai_call_count = 0
 
@@ -162,7 +154,7 @@ class SandboxRunner:
 
         if msg_type == "list_models":
             return {
-                "payload": {"type": "result", "data": json.dumps(settings.ALLOWED_MODELS)},
+                "payload": {"type": "result", "data": json.dumps(settings.allowed_models_list)},
                 "calls_made": 0,
             }
 

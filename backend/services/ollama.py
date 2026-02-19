@@ -33,8 +33,8 @@ class OllamaClient:
         self._mock     = settings.USE_MOCK_AI
 
     def _validate(self, model: str, prompt: str) -> None:
-        if model not in settings.ALLOWED_MODELS:
-            raise ModelNotAllowedError(model, settings.ALLOWED_MODELS)
+        if model not in settings.allowed_models_list:
+            raise ModelNotAllowedError(model, settings.allowed_models_list)
         if len(prompt) > settings.MAX_PROMPT_LENGTH:
             raise PromptTooLongError(len(prompt), settings.MAX_PROMPT_LENGTH)
 

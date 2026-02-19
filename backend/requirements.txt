@@ -5,3 +5,5 @@ httpx==0.26.0
 pydantic==2.5.3
 python-dotenv==1.0.0
 pydantic-settings==2.1.0
+sqlalchemy[asyncio]==2.0.35
+asyncpg==0.30.0
