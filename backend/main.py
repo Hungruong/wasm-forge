@@ -1,63 +1,58 @@
 """
-WASM AI Platform - API Server Entry Point
+WasmForge — API Server
+Run: uvicorn main:app --host 0.0.0.0 --port 8000
 """
 
-import logging
-from contextlib import asynccontextmanager
-
-import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import models, plugins, health
-from core.config import settings
-from core.database import init_db, close_db
-from middleware.logging import LoggingMiddleware
+import config
+import database
+import ollama
+from routes import router
 
-logger = logging.getLogger("api")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Startup: create DB tables. Shutdown: close DB connections."""
-    logger.info("Initializing database...")
-    await init_db()
-    logger.info("Database ready.")
-    yield
-    logger.info("Shutting down database connections...")
-    await close_db()
-
+# ── App ───────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="WASM AI Platform",
-    description="Run AI-powered Python plugins in secure WebAssembly sandboxes",
+    title="WasmForge API",
+    description="Run AI-powered Python plugins in secure sandboxes",
     version="0.2.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    lifespan=lifespan,
 )
-
-# ── Middleware ────────────────────────────────────────────────────────────────
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(LoggingMiddleware)
 
-# ── Routers ───────────────────────────────────────────────────────────────────
-
-app.include_router(health.router,   tags=["Health"])
-app.include_router(models.router,   prefix="/api/models",  tags=["Models"])
-app.include_router(plugins.router,  prefix="/api/plugins", tags=["Plugins"])
+app.include_router(router)
 
 
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host=settings.API_HOST,
-        port=settings.API_PORT,
-        reload=True,
-    )
+# ── Health Checks ─────────────────────────────────────────────────────────────
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "wasmedge": config.USE_WASMEDGE}
+
+
+@app.get("/health/ollama")
+async def health_ollama():
+    return await ollama.health_check()
+
+
+# ── Lifecycle ─────────────────────────────────────────────────────────────────
+
+
+@app.on_event("startup")
+async def startup():
+    await database.init_db()
+    print(f"[WasmForge] Ollama:   {config.OLLAMA_BASE_URL}")
+    print(f"[WasmForge] Models:   {config.ALLOWED_MODELS}")
+    print(f"[WasmForge] WasmEdge: {'on' if config.USE_WASMEDGE else 'off'}")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.close_db()

@@ -1,6 +1,5 @@
-import { useState, useRef } from "react";
-import { uploadPlugin } from "../api/api";
-import { mockModels } from "../api/mock";
+import { useState, useRef, useEffect } from "react";
+import { uploadPlugin, getModels } from "../api/api";
 
 const DEFAULT_CODE = `# ══════════════════════════════════════════════
 # WasmForge Plugin Template
@@ -21,16 +20,6 @@ const DEFAULT_CODE = `# ══════════════════�
 #   send_output(result)     → Return result to user
 #   list_models()           → Get available model names
 #
-# AVAILABLE MODELS:
-#   "llama3"   → Text: summarize, translate, Q&A, analyze
-#   "llava"    → Vision: image description, visual reasoning
-#   "mistral"  → Code: review, generation, debugging
-#
-# EXAMPLE:
-#   call_ai("llama3", "Summarize this: " + text)
-#   call_ai("llama3", "Translate to Vietnamese: " + text)
-#   call_ai("mistral", "Find bugs in: " + code)
-#
 # ══════════════════════════════════════════════
 
 from platform_sdk import call_ai, get_input, send_output
@@ -39,14 +28,14 @@ from platform_sdk import call_ai, get_input, send_output
 text = get_input()
 
 # Step 2: Call AI model
-result = call_ai("llama3", "Summarize the following text: " + text)
+result = call_ai("qwen2.5:1.5b", "Summarize the following text: " + text)
 
 # Step 3: Return result
 send_output(result)
 `;
 
 const SDK_FNS = [
-  { name: "call_ai(model, prompt)", desc: "Call an AI model, returns response string", insert: 'call_ai("llama3", "")' },
+  { name: "call_ai(model, prompt)", desc: "Call an AI model, returns response string", insert: 'call_ai("qwen2.5:1.5b", "")' },
   { name: "get_input()", desc: "Read user-provided input", insert: "get_input()" },
   { name: "send_output(result)", desc: "Return final result to user", insert: "send_output(result)" },
   { name: "list_models()", desc: "Get list of available model names", insert: "list_models()" },
@@ -58,14 +47,12 @@ const TAG_CLASS = {
   code: "tag-code",
 };
 
-const AUTOCOMPLETE_ITEMS = [
+// Static autocomplete items (SDK functions + import)
+const STATIC_AC_ITEMS = [
   { trigger: "call_ai", label: 'call_ai("model", "prompt")', insert: 'call_ai("", "")', type: "function" },
   { trigger: "get_input", label: "get_input()", insert: "get_input()", type: "function" },
   { trigger: "send_output", label: "send_output(result)", insert: "send_output()", type: "function" },
   { trigger: "list_models", label: "list_models()", insert: "list_models()", type: "function" },
-  { trigger: "llama3", label: '"llama3" — text processing', insert: '"llama3"', type: "model" },
-  { trigger: "llava", label: '"llava" — image understanding', insert: '"llava"', type: "model" },
-  { trigger: "mistral", label: '"mistral" — code analysis', insert: '"mistral"', type: "model" },
   { trigger: "from platform_sdk", label: "from platform_sdk import ...", insert: "from platform_sdk import call_ai, get_input, send_output", type: "import" },
   { trigger: "platform_sdk", label: "from platform_sdk import ...", insert: "from platform_sdk import call_ai, get_input, send_output", type: "import" },
 ];
@@ -76,7 +63,7 @@ const TEMPLATES = [
     code: `from platform_sdk import call_ai, get_input, send_output
 
 text = get_input()
-result = call_ai("llama3", "Summarize the following text: " + text)
+result = call_ai("qwen2.5:1.5b", "Summarize the following text: " + text)
 send_output(result)
 `,
   },
@@ -88,7 +75,7 @@ import json
 text = get_input()
 
 # Step 1: AI analysis
-analysis = call_ai("llama3", "Rate this text's sentiment 0-10. Reply with just the number: " + text)
+analysis = call_ai("qwen2.5:1.5b", "Rate this text's sentiment 0-10. Reply with just the number: " + text)
 
 # Step 2: Your logic (no AI needed)
 score = 0
@@ -107,7 +94,7 @@ else:
     mood = "negative"
 
 # Step 3: AI generates report
-report = call_ai("llama3", f"Write a brief sentiment report. Text: {text}. Mood: {mood}")
+report = call_ai("qwen2.5:1.5b", f"Write a brief sentiment report. Text: {text}. Mood: {mood}")
 
 send_output(json.dumps({
     "mood": mood,
@@ -121,7 +108,7 @@ send_output(json.dumps({
     code: `from platform_sdk import call_ai, get_input, send_output
 
 text = get_input()
-result = call_ai("llama3", "Translate the following text to Vietnamese: " + text)
+result = call_ai("qwen2.5:1.5b", "Translate the following text to Vietnamese: " + text)
 send_output(result)
 `,
   },
@@ -132,9 +119,9 @@ import json
 
 code = get_input()
 
-bugs = call_ai("mistral", "Find bugs in this code. Be concise: " + code)
-security = call_ai("mistral", "Check for security vulnerabilities. Be concise: " + code)
-suggestions = call_ai("mistral", "Suggest improvements. Be concise: " + code)
+bugs = call_ai("mistral:latest", "Find bugs in this code. Be concise: " + code)
+security = call_ai("mistral:latest", "Check for security vulnerabilities. Be concise: " + code)
+suggestions = call_ai("mistral:latest", "Suggest improvements. Be concise: " + code)
 
 send_output(json.dumps({
     "bugs": bugs,
@@ -157,11 +144,30 @@ export default function Builder() {
   const [acIndex, setAcIndex] = useState(0);
   const [acPos, setAcPos] = useState({ top: 0, left: 0 });
   const [wordStart, setWordStart] = useState(0);
+  const [models, setModels] = useState([]);
   const editorRef = useRef(null);
+
+  // Fetch models from API on mount
+  useEffect(() => {
+    getModels()
+      .then(setModels)
+      .catch(() => setModels([]));
+  }, []);
+
+  // Build autocomplete items dynamically from fetched models
+  const autocompleteItems = [
+    ...STATIC_AC_ITEMS,
+    ...models.map((m) => ({
+      trigger: m.name,
+      label: `"${m.name}" — ${m.description}`,
+      insert: `"${m.name}"`,
+      type: "model",
+    })),
+  ];
 
   function getWordAtCursor(text, cursorPos) {
     let start = cursorPos;
-    while (start > 0 && /[a-zA-Z0-9_"']/.test(text[start - 1])) {
+    while (start > 0 && /[a-zA-Z0-9_.:'"']/.test(text[start - 1])) {
       start--;
     }
     return { word: text.substring(start, cursorPos), start };
@@ -177,7 +183,7 @@ export default function Builder() {
 
     if (word.length >= 2) {
       const lowerWord = word.toLowerCase().replace(/"/g, "");
-      const matches = AUTOCOMPLETE_ITEMS.filter((item) =>
+      const matches = autocompleteItems.filter((item) =>
         item.trigger.toLowerCase().startsWith(lowerWord)
       );
 
@@ -480,21 +486,35 @@ export default function Builder() {
           <div className="sidebar-section">
             <div className="sidebar-title">Models — click to insert</div>
             <div className="sidebar-body">
-              {mockModels.map((m) => (
-                <div
-                  key={m.name}
-                  className="model-item model-item-clickable"
-                  onClick={() => insertAtCursor(`call_ai("${m.name}", "")`)}
-                >
-                  <div>
-                    <span className="model-name">{m.name}</span>
-                    <div className="model-hint">{m.description}</div>
-                  </div>
-                  <span className={`tag ${TAG_CLASS[m.type] || "tag-text"}`}>
-                    {m.type}
-                  </span>
+              {models.length === 0 ? (
+                <div style={{ color: "var(--text-dim)", fontSize: "0.85rem", padding: "0.5rem 0" }}>
+                  Loading models…
                 </div>
-              ))}
+              ) : (
+                models.map((m) => (
+                  <div
+                    key={m.name}
+                    className="model-item model-item-clickable"
+                    onClick={() => insertAtCursor(`call_ai("${m.name}", "")`)}
+                    style={{ opacity: m.available === false ? 0.5 : 1 }}
+                  >
+                    <div>
+                      <span className="model-name">
+                        {m.name}
+                        {m.available === false && (
+                          <span style={{ color: "var(--text-dim)", fontSize: "0.75rem", marginLeft: "0.5rem" }}>
+                            (unavailable)
+                          </span>
+                        )}
+                      </span>
+                      <div className="model-hint">{m.description}</div>
+                    </div>
+                    <span className={`tag ${TAG_CLASS[m.type] || "tag-text"}`}>
+                      {m.type}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
