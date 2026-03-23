@@ -204,10 +204,103 @@ journalctl -u wasmforge -f    # tail logs
 systemctl restart wasmforge   # restart after code changes
 ```
 
-## Gotchas
+## Troubleshooting
 
-- **DB hostname times out.** Akamai's hostname resolves to IPv6 first, which hangs. Use the IPv4 address directly.
-- **`curl` vs `curl.exe` on Windows.** PowerShell aliases `curl` to `Invoke-WebRequest`. Use `curl.exe` for the real thing.
-- **Model names must be exact.** `mistral` won't match `mistral:latest`. Check `ollama list` for the real names.
-- **Port 8000 already in use.** `kill $(lsof -t -i:8000)` on Linux, or just restart the terminal.
-- **WasmEdge env not loaded.** Run `source ~/.wasmedge/env` or restart your shell.
+### Server & Connection
+
+**Backend not responding (`curl` timeout)**
+```bash
+curl http://172.234.27.110:8000/health
+# No response → SSH in and check:
+ssh root@172.234.27.110
+systemctl status wasmforge
+# If inactive → restart:
+systemctl start wasmforge
+```
+
+**Port 8000 already in use**
+```bash
+kill $(lsof -t -i:8000)   # Linux/macOS
+# Windows:
+netstat -ano | findstr :8000
+taskkill /PID <PID> /F
+```
+
+---
+
+### Database
+
+**DB hostname times out**
+Akamai's hostname resolves to IPv6 first, which hangs. Use the IPv4 address directly in `.env`:
+```
+DB_HOST=172.239.42.137        # ✅ correct
+DB_HOST=db-hostname.aiven.io  # ❌ may timeout
+```
+
+**SSL error when connecting to PostgreSQL**
+Make sure the cert file exists at the correct path:
+```bash
+ls ./certs/ca-certificate.crt
+```
+If missing, re-download from Akamai dashboard → Database → Connection info.
+
+---
+
+### Ollama & Models
+
+**Model fails to load**
+```bash
+curl http://localhost:11434/api/tags   # check available models
+ollama list                            # or use CLI
+ollama pull mistral:latest             # re-pull if missing
+```
+
+**Model name mismatch**
+Model names must be an exact match with Ollama. For example:
+```
+mistral          ❌
+mistral:latest   ✅
+```
+Make sure `ALLOWED_MODELS` in `.env` matches the output of `ollama list`.
+
+---
+
+### WasmEdge
+
+**`source ~/.wasmedge/env` fails**
+```bash
+# Check if WasmEdge is installed:
+wasmedge --version
+# If not found → re-run deploy.sh or install manually:
+curl -sSf https://raw.githubusercontent.com/WasmEdge/WasmEdge/master/utils/install.sh | bash
+source ~/.wasmedge/env
+```
+
+**WasmEdge runs but plugin crashes immediately**
+Check that `WASM_PYTHON_PATH` in `.env` points to the correct `.wasm` file:
+```bash
+ls /opt/wasmedge-python/bin/python-3.11.1-wasmedge.wasm
+```
+
+**Running on Windows/macOS**
+WasmEdge only runs on Linux. Set in `.env`:
+```
+USE_WASMEDGE=false
+```
+This falls back to Python-level sandbox — fine for development, not for production.
+
+---
+
+### Windows-specific
+
+**`curl` not working in PowerShell**
+PowerShell aliases `curl` to `Invoke-WebRequest`. Use the real binary instead:
+```powershell
+curl.exe http://localhost:8000/health
+```
+
+**`Activate.ps1` blocked by execution policy**
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+.\venv\Scripts\Activate.ps1
+```
